@@ -22,15 +22,24 @@ jobs:
           mv Godot.app /Applications/Godot.app
           rm Godot_v4.6-stable_macos.universal.zip
 
-      # 2. Pobieranie oficjalnych szablonów eksportu dla wersji 4.6 (Wymagane do iOS)
+      # 2. Pobieranie oficjalnych szablonów eksportu (Poprawione ścieżki $HOME)
       - name: Pobierz szablony eksportu Godota
         run: |
-          mkdir -p "~/Library/Application Support/Godot/export_templates/4.6.stable"
+          # Tworzymy poprawną ścieżkę w profilu użytkownika runnera
+          mkdir -p "$HOME/Library/Application Support/Godot/export_templates/4.6.stable"
+          
+          # Pobieramy szablony eksportu
           curl -LO https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz
-          unzip Godot_v4.6-stable_export_templates.tpz
-          # Przenosimy pliki szablonów do domyślnego folderu Godota na macOS
-          mv templates/* "~/Library/Application Support/Godot/export_templates/4.6.stable/"
-          rm -rf templates Godot_v4.6-stable_export_templates.tpz
+          
+          # Zmieniamy rozszerzenie na zip i rozpakowujemy
+          mv Godot_v4.6-stable_export_templates.tpz templates.zip
+          unzip templates.zip
+          
+          # Przenosimy pliki (w tym ios.zip) do właściwego folderu Godota
+          mv templates/* "$HOME/Library/Application Support/Godot/export_templates/4.6.stable/"
+          
+          # Sprzątanie zbędnych plików tymczasowych
+          rm -rf templates templates.zip
 
       # 3. Eksportowanie projektu z Godota do Xcode
       - name: Eksport do Xcode
