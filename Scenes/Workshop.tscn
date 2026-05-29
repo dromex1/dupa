@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://ws234568aa"]
+
+[ext_resource type="Script" path="res://Scenes/Workshop.gd" id="1_wk123"]
+[ext_resource type="PackedScene" path="res://Scenes/UpgradeGUI.tscn" id="2_ug123"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_workshop"]
+size = Vector3(8, 4, 6)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
+albedo_color = Color(0.3, 0.3, 0.4, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_roof"]
+albedo_color = Color(0.6, 0.2, 0.2, 1)
+
+[node name="Workshop" type="StaticBody3D"]
+script = ExtResource("1_wk123")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+shape = SubResource("BoxShape3D_workshop")
+
+[node name="CSGBox3D" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+size = Vector3(8, 4, 6)
+material = SubResource("StandardMaterial3D_wall")
+
+[node name="Roof" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5, 0)
+size = Vector3(8.5, 1, 6.5)
+material = SubResource("StandardMaterial3D_roof")
+
+[node name="UpgradeGUI" parent="." instance=ExtResource("2_ug123")]

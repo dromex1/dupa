@@ -1,0 +1,28 @@
+name: Zbuduj plik IPA (Sideloadly)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    name: Kompilowanie IPA w Xcode
+    runs-on: macos-latest
+
+    steps:
+      - name: Pobieranie plikow z repozytorium
+        uses: actions/checkout@v3
+
+      - name: Kompilowanie pliku .ipa za pomoca darmowego Xcode
+        run: |
+          xcodebuild build -project gowna.xcodeproj -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          mkdir -p Payload
+          mv build/Release-iphoneos/*.app Payload/
+          zip -r Gra_gotowa_sideloadly.ipa Payload
+          
+      - name: Udostepnianie gotowego pliku IPA do pobrania
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gra-Na-iPhone-Sideloadly
+          path: Gra_gotowa_sideloadly.ipa
