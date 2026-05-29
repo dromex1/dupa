@@ -22,14 +22,23 @@ jobs:
           mv Godot.app /Applications/Godot.app
           rm Godot_v4.6-stable_macos.universal.zip
 
-      # 2. Eksportowanie projektu z Godota do Xcode bezpośrednio na maszynie CI
+      # 2. Pobieranie oficjalnych szablonów eksportu dla wersji 4.6 (Wymagane do iOS)
+      - name: Pobierz szablony eksportu Godota
+        run: |
+          mkdir -p "~/Library/Application Support/Godot/export_templates/4.6.stable"
+          curl -LO https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz
+          unzip Godot_v4.6-stable_export_templates.tpz
+          # Przenosimy pliki szablonów do domyślnego folderu Godota na macOS
+          mv templates/* "~/Library/Application Support/Godot/export_templates/4.6.stable/"
+          rm -rf templates Godot_v4.6-stable_export_templates.tpz
+
+      # 3. Eksportowanie projektu z Godota do Xcode
       - name: Eksport do Xcode
         run: |
           mkdir -p build/ios
           /Applications/Godot.app/Contents/MacOS/Godot --headless --export-release "iOS" build/ios/gowno.xcodeproj
-          # Godot stworzy projekt Xcode w build/ios/gowno.xcodeproj
 
-      # 3. Kompilowanie pliku za pomocą Xcode (bez podpisywania certyfikatami Apple)
+      # 4. Kompilowanie pliku za pomocą Xcode
       - name: Kompilowanie pliku .ipa za pomoca darmowego Xcode
         run: |
           cd build/ios
@@ -38,7 +47,7 @@ jobs:
           mv build/Release-iphoneos/*.app Payload/
           zip -r ../../Gra_gotowa_sideloadly.ipa Payload
           
-      # 4. Udostępnienie gotowego pliku IPA do pobrania z GitHuba
+      # 5. Udostępnienie gotowego pliku IPA do pobrania
       - name: Udostepnianie gotowego pliku IPA do pobrania
         uses: actions/upload-artifact@v4
         with:
