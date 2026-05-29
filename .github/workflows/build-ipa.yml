@@ -1,4 +1,4 @@
-name: Zbuduj plik IPA (Sideloadly)
+name: Build IPA for Sideloadly
 
 on:
   workflow_dispatch:
@@ -7,51 +7,67 @@ on:
 
 jobs:
   build:
-    name: Kompilowanie IPA w Xcode
+    name: Build IPA with Xcode
     runs-on: macos-latest
+    env:
+      GODOT_VERSION: 4.6-stable
+      GODOT_TEMPLATES_VERSION: 4.6.stable
 
     steps:
-      - name: Pobieranie plikow z repozytorium
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. Pobieranie Godota 4.6
-      - name: Pobierz i zainstaluj Godot 4.6
+      - name: Install Godot
         run: |
-          curl -LO https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_macos.universal.zip
-          unzip Godot_v4.6-stable_macos.universal.zip
+          curl -L -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_macos.universal.zip"
+          unzip -q godot.zip
           mv Godot.app /Applications/Godot.app
-          rm Godot_v4.6-stable_macos.universal.zip
+          rm godot.zip
 
-      # 2. Pobieranie oficjalnych szablonów eksportu
-      - name: Pobierz szablony eksportu Godota
+      - name: Install Godot export templates
         run: |
-          mkdir -p "$HOME/Library/Application Support/Godot/export_templates/4.6.stable"
-          curl -LO https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz
-          mv Godot_v4.6-stable_export_templates.tpz templates.zip
-          unzip templates.zip
-          mv templates/* "$HOME/Library/Application Support/Godot/export_templates/4.6.stable/"
+          mkdir -p "$HOME/Library/Application Support/Godot/export_templates/${GODOT_TEMPLATES_VERSION}"
+          curl -L -o templates.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          unzip -q templates.zip
+          mv templates/* "$HOME/Library/Application Support/Godot/export_templates/${GODOT_TEMPLATES_VERSION}/"
           rm -rf templates templates.zip
 
-      # 3. Eksportowanie projektu z Godota do Xcode
-      - name: Eksport do Xcode
+      - name: Import Godot project
+        run: |
+          /Applications/Godot.app/Contents/MacOS/Godot --headless --import --quit
+
+      - name: Export Xcode project
         run: |
           mkdir -p build/ios
-          # Dodajemy '|| true', aby zignorować błąd automatycznej kompilacji Godota. 
-          # Projekt Xcode i tak zdąży się wygenerować!
-          /Applications/Godot.app/Contents/MacOS/Godot --headless --export-release "iOS" build/ios/gowno.xcodeproj || true
+          /Applications/Godot.app/Contents/MacOS/Godot --headless --export-release "iOS" build/ios/gowno.xcodeproj
+          test -d build/ios/gowno.xcodeproj
+          test -f build/ios/gowno.xcodeproj/project.pbxproj
 
-      # 4. Kompilowanie pliku za pomocą Xcode
-      - name: Kompilowanie pliku .ipa za pomoca darmowego Xcode
+      - name: Build unsigned app
         run: |
           cd build/ios
-          # Dodano CODE_SIGN_STYLE="Manual", aby Xcode nie pluł się o ustawienia wygenerowane przez Godota
-          xcodebuild build -project gowno.xcodeproj -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO CODE_SIGN_STYLE="Manual"
+          xcodebuild build \
+            -project gowno.xcodeproj \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_STYLE="Manual"
+          APP_PATH="$(find build/Release-iphoneos -maxdepth 1 -name '*.app' -type d -print -quit)"
+          test -n "$APP_PATH"
+
+      - name: Package IPA
+        run: |
+          cd build/ios
+          APP_PATH="$(find build/Release-iphoneos -maxdepth 1 -name '*.app' -type d -print -quit)"
+          test -n "$APP_PATH"
           mkdir -p Payload
-          mv build/Release-iphoneos/*.app Payload/
+          cp -R "$APP_PATH" Payload/
           zip -r ../../Gra_gotowa_sideloadly.ipa Payload
-          
-      # 5. Udostępnienie gotowego pliku IPA do pobrania
-      - name: Udostepnianie gotowego pliku IPA do pobrania
+          test -s ../../Gra_gotowa_sideloadly.ipa
+
+      - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: Gra-Na-iPhone-Sideloadly
