@@ -22,36 +22,30 @@ jobs:
           mv Godot.app /Applications/Godot.app
           rm Godot_v4.6-stable_macos.universal.zip
 
-      # 2. Pobieranie oficjalnych szablonów eksportu (Poprawione ścieżki $HOME)
+      # 2. Pobieranie oficjalnych szablonów eksportu
       - name: Pobierz szablony eksportu Godota
         run: |
-          # Tworzymy poprawną ścieżkę w profilu użytkownika runnera
           mkdir -p "$HOME/Library/Application Support/Godot/export_templates/4.6.stable"
-          
-          # Pobieramy szablony eksportu
           curl -LO https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz
-          
-          # Zmieniamy rozszerzenie na zip i rozpakowujemy
           mv Godot_v4.6-stable_export_templates.tpz templates.zip
           unzip templates.zip
-          
-          # Przenosimy pliki (w tym ios.zip) do właściwego folderu Godota
           mv templates/* "$HOME/Library/Application Support/Godot/export_templates/4.6.stable/"
-          
-          # Sprzątanie zbędnych plików tymczasowych
           rm -rf templates templates.zip
 
       # 3. Eksportowanie projektu z Godota do Xcode
       - name: Eksport do Xcode
         run: |
           mkdir -p build/ios
-          /Applications/Godot.app/Contents/MacOS/Godot --headless --export-release "iOS" build/ios/gowno.xcodeproj
+          # Dodajemy '|| true', aby zignorować błąd automatycznej kompilacji Godota. 
+          # Projekt Xcode i tak zdąży się wygenerować!
+          /Applications/Godot.app/Contents/MacOS/Godot --headless --export-release "iOS" build/ios/gowno.xcodeproj || true
 
       # 4. Kompilowanie pliku za pomocą Xcode
       - name: Kompilowanie pliku .ipa za pomoca darmowego Xcode
         run: |
           cd build/ios
-          xcodebuild build -project gowno.xcodeproj -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          # Dodano CODE_SIGN_STYLE="Manual", aby Xcode nie pluł się o ustawienia wygenerowane przez Godota
+          xcodebuild build -project gowno.xcodeproj -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO CODE_SIGN_STYLE="Manual"
           mkdir -p Payload
           mv build/Release-iphoneos/*.app Payload/
           zip -r ../../Gra_gotowa_sideloadly.ipa Payload
